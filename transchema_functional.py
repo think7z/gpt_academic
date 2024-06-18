@@ -61,30 +61,4 @@ def transform(source_file_upload, target_file_upload):
 
 
     return res
-source_path_0, source_path_1 = ''
-
-df_0 = pd.read_csv(source_path_0)
-df_1 = pd.readcsv(source_path_1)
-
-df_0 = pd.read_csv(source_path_0)
-df_1 = pd.read_csv(source_path_1)
-
-final_df = None
-
-
-final_df = final_df['city', 'ride them_id_count']
-
-df0_transformed = df_0[['city']]    # Only 'city' is useful from source 0
-df1_transformed = df_1[['city', 'ride_id']] # Select 'city' and 'ride_id' from source 1
-
-
-source_1_df = None
-
-# Since source_0 does not contain 'ride_id', and source_1 does,
-# we only focus on source_1 for aggregation to match the target format
-# Aggregate source 1 to count 'ride_id' per 'city'
-target_df = source_1_df.groupby('city').ride_id.unique().reset_index()
-target_df.columns = ['city', 'ride_id_count']
-
-# 
 
