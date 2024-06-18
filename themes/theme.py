@@ -132,8 +132,8 @@ setTimeout(() => {
     // get conf
     display_panel_arr = get_checkbox_selected_items("cbs");
 
-    ////////////////////// 输入清除键 ///////////////////////////
-    let searchString = "输入清除键";
+    ////////////////////// Clear Inputs ///////////////////////////
+    let searchString = "Clear Inputs";
     let ele = "none";
     if (display_panel_arr.includes(searchString)) {
         let clearButton = document.getElementById("elem_clear");
@@ -149,8 +149,8 @@ setTimeout(() => {
         setCookie("js_clearbtn_show_cookie", "False", 365);
     }
 
-    ////////////////////// 基础功能区 ///////////////////////////
-    searchString = "基础功能区";
+    ////////////////////// Prompt Template ///////////////////////////
+    searchString = "Prompt Template";
     if (display_panel_arr.includes(searchString)) {
         ele = document.getElementById("basic-panel");
         ele.style.display = "block";
@@ -159,8 +159,8 @@ setTimeout(() => {
         ele.style.display = "none";
     }
 
-    ////////////////////// 函数插件区 ///////////////////////////
-    searchString = "函数插件区";
+    ////////////////////// Plugin Panel ///////////////////////////
+    searchString = "Plugin Panel";
     if (display_panel_arr.includes(searchString)) {
         ele = document.getElementById("plugin-panel");
         ele.style.display = "block";

@@ -965,15 +965,36 @@ async function GptAcademicJavaScriptInit(dark, prompt, live2d, layout, tts) {
     if (getCookie("js_md_dropdown_cookie")) {
         const cached_model = getCookie("js_md_dropdown_cookie");
         var model_sel = await get_gradio_component("elem_model_sel");
-        // determine whether the cached model is in the choices
+        // deterine whether the cached model is in the choices
         if (model_sel.props.choices.includes(cached_model)){
             // change dropdown
             gpt_academic_gradio_saveload("load", "elem_model_sel", "js_md_dropdown_cookie", null, "str");
             // 连锁修改chatbot的label
-            push_data_to_gradio_component({
-                label: '当前模型：' + getCookie("js_md_dropdown_cookie"),
-                __type__: 'update'
-            }, "gpt-chatbot", "obj")
+            if (getCookie("js_pt_dropdown_cookie")) {
+                push_data_to_gradio_component({
+                    label: 'Current Model：' + getCookie("js_md_dropdown_cookie") + " with " + getCookie("js_pt_dropdown_cookie"),
+                    __type__: 'update'
+                }, "gpt-chatbot", "obj")
+            }
+            
+        }
+    }
+    // pt_dropdown Prompt模板选择
+    if (getCookie("js_pt_dropdown_cookie")) {
+        const cached_model = getCookie("js_pt_dropdown_cookie");
+        var model_sel = await get_gradio_component("elem_prompt_temp_sel");
+        // deterine whether the cached model is in the choices
+        if (model_sel.props.choices.includes(cached_model)){
+            // change dropdown
+            gpt_academic_gradio_saveload("load", "elem_prompt_temp_sel", "js_pt_dropdown_cookie", null, "str");
+            // 连锁修改chatbot的label
+            if (getCookie("js_md_dropdown_cookie")) {
+                push_data_to_gradio_component({
+                    label: 'Current Model：' + getCookie("js_md_dropdown_cookie") + " with " + getCookie("js_pt_dropdown_cookie"),
+                    __type__: 'update'
+                }, "gpt-chatbot", "obj")
+            }
+            
         }
     }
 

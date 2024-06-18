@@ -1,5 +1,6 @@
 import os, json; os.environ['no_proxy'] = '*' # 避免代理网络产生意外污染
 
+my_title = "LLM-based Data Transformation"
 help_menu_description = \
 """Github源代码开源和更新[地址🚀](https://github.com/binary-husky/gpt_academic),
 感谢热情的[开发者们❤️](https://github.com/binary-husky/gpt_academic/graphs/contributors).
@@ -37,6 +38,10 @@ def main():
     NUM_CUSTOM_BASIC_BTN, SSL_KEYFILE, SSL_CERTFILE = get_conf('NUM_CUSTOM_BASIC_BTN', 'SSL_KEYFILE', 'SSL_CERTFILE')
     DARK_MODE, INIT_SYS_PROMPT, ADD_WAIFU, TTS_TYPE = get_conf('DARK_MODE', 'INIT_SYS_PROMPT', 'ADD_WAIFU', 'TTS_TYPE')
     if LLM_MODEL not in AVAIL_LLM_MODELS: AVAIL_LLM_MODELS += [LLM_MODEL]
+    
+    # prompt template selection
+    PROMPT_TEMP = get_conf('PROMPT_TEMP')
+    AVAIL_PROMPT_TEMPS = get_conf('AVAIL_PROMPT_TEMPS')
 
     # 如果WEB_PORT是-1, 则随机选取WEB端口
     PORT = find_free_port() if WEB_PORT <= 0 else WEB_PORT
@@ -44,7 +49,7 @@ def main():
     from themes.theme import adjust_theme, advanced_css, theme_declaration, js_code_clear, js_code_reset, js_code_show_or_hide, js_code_show_or_hide_group2
     from themes.theme import js_code_for_css_changing, js_code_for_toggle_darkmode, js_code_for_persistent_cookie_init
     from themes.theme import load_dynamic_theme, to_cookie_str, from_cookie_str, assign_user_uuid
-    title_html = f"<h1 align=\"center\">GPT 学术优化 {get_current_version()}</h1>{theme_declaration}"
+    title_html = f"<h1 align=\"center\">{my_title} {get_current_version()}</h1>{theme_declaration}"
 
     # 对话、日志记录
     enable_log(PATH_LOGGING)
@@ -81,7 +86,7 @@ def main():
     customize_btns = {}
     predefined_btns = {}
     from shared_utils.cookie_manager import make_cookie_cache, make_history_cache
-    with gr.Blocks(title="GPT 学术优化", theme=set_theme, analytics_enabled=False, css=advanced_css) as app_block:
+    with gr.Blocks(title=my_title, theme=set_theme, analytics_enabled=False, css=advanced_css) as app_block:
         gr.HTML(title_html)
         secret_css = gr.Textbox(visible=False, elem_id="secret_css")
         register_advanced_plugin_init_code_arr = ""
@@ -89,38 +94,73 @@ def main():
         cookies, web_cookie_cache = make_cookie_cache() # 定义 后端state（cookies）、前端（web_cookie_cache）两兄弟
         with gr_L1():
             with gr_L2(scale=2, elem_id="gpt-chat"):
-                chatbot = gr.Chatbot(label=f"当前模型：{LLM_MODEL}", elem_id="gpt-chatbot")
+                chatbot = gr.Chatbot(label=f"Current Model: {LLM_MODEL} with {PROMPT_TEMP}", elem_id="gpt-chatbot")
                 if LAYOUT == "TOP-DOWN":  chatbot.style(height=CHATBOT_HEIGHT)
                 history, history_cache, history_cache_update = make_history_cache() # 定义 后端state（history）、前端（history_cache）、后端setter（history_cache_update）三兄弟
+            
             with gr_L2(scale=1, elem_id="gpt-panel"):
-                with gr.Accordion("输入区", open=True, elem_id="input-panel") as area_input_primary:
+                
+                with gr.Accordion("File Upload", open=True, elem_id="file-upload-panel") as area_file_up:
+                    source_file_upload = gr.Files(label="Upload Source CSV Files", file_count="multiple", elem_id="elem_upload_source")
+                    target_file_upload = gr.Files(label="Upload Target CSV File", file_count=1, elem_id="elem_upload_target")
+
+                with gr.Accordion("Transformation Results", open=True, elem_id="result-panel") as area_transformation_results:
+                    process_files_btn = gr.Button("Transform", variant="primary", elem_id="elem_transform")
+                    generated_code = gr.Code(label="Generated Code", language="python", value="import pandas as pd\n\n# Load Data\nsource0_path = ", elem_id="elem_generated_code")
+                    trans_result = gr.Dataframe(label="Generated Dataframe", elem_id="elem_result")
+                    download_link = gr.File(label="Download as CSV", interactive=False, elem_id="elem_download_csv")
+                    from transchema_functional import transform
+                    process_files_btn.click(fn=transform, inputs=[source_file_upload, target_file_upload], outputs=chatbot)
+
+                with gr.Accordion("Examples", open=True, elem_id="example-panel") as area_examples:
+                    # Step 1: Define example files
+                    example_files = {
+                        "Example 1": {"source": ["path/to/example1_source.csv"], "target": "path/to/example1_target.csv"},
+                        "Example 2": {"source": ["path/to/example2_source.csv"], "target": "path/to/example2_target.csv"}
+                    }
+
+                    # Step 2: Create a dropdown for examples
+                    example_selector = gr.Dropdown(label="Select an Example", choices=list(example_files.keys()), elem_id="elem_example_selector")
+
+                    # Step 3: Define a function to set files programmatically
+                    def set_example_files(example_name):
+                        if example_name in example_files:
+                            example = example_files[example_name]
+                            # Assuming there's a way to programmatically set the file upload components
+                            source_file_upload.set_files(example["source"])
+                            target_file_upload.set_files([example["target"]])
+
+                    # Step 4: Link the dropdown selection to updating the file upload components
+                    example_selector.change(fn=set_example_files, inputs=[example_selector], outputs=[])
+
+                with gr.Accordion("Input Panel", open=True, elem_id="input-panel") as area_input_primary:
                     with gr.Row():
                         txt = gr.Textbox(show_label=False, placeholder="Input question here.", elem_id='user_input_main').style(container=False)
                     with gr.Row():
-                        submitBtn = gr.Button("提交", elem_id="elem_submit", variant="primary")
+                        submitBtn = gr.Button("Submit", elem_id="elem_submit", variant="primary")
                     with gr.Row():
-                        resetBtn = gr.Button("重置", elem_id="elem_reset", variant="secondary"); resetBtn.style(size="sm")
-                        stopBtn = gr.Button("停止", elem_id="elem_stop", variant="secondary"); stopBtn.style(size="sm")
-                        clearBtn = gr.Button("清除", elem_id="elem_clear", variant="secondary", visible=False); clearBtn.style(size="sm")
+                        resetBtn = gr.Button("Reset", elem_id="elem_reset", variant="secondary"); resetBtn.style(size="sm")
+                        stopBtn = gr.Button("Stop", elem_id="elem_stop", variant="secondary"); stopBtn.style(size="sm")
+                        clearBtn = gr.Button("Clear", elem_id="elem_clear", variant="secondary", visible=False); clearBtn.style(size="sm")
                     if ENABLE_AUDIO:
                         with gr.Row():
                             audio_mic = gr.Audio(source="microphone", type="numpy", elem_id="elem_audio", streaming=True, show_label=False).style(container=False)
                     with gr.Row():
                         status = gr.Markdown(f"Tip: 按Enter提交, 按Shift+Enter换行。当前模型: {LLM_MODEL} \n {proxy_info}", elem_id="state-panel")
 
-                with gr.Accordion("基础功能区", open=True, elem_id="basic-panel") as area_basic_fn:
+                with gr.Accordion("Prompt Template", open=True, elem_id="basic-panel") as area_basic_fn:
                     with gr.Row():
                         for k in range(NUM_CUSTOM_BASIC_BTN):
-                            customize_btn = gr.Button("自定义按钮" + str(k+1), visible=False, variant="secondary", info_str=f'基础功能区: 自定义按钮')
+                            customize_btn = gr.Button("自定义按钮" + str(k+1), visible=False, variant="secondary", info_str=f'Prompt Template: 自定义按钮')
                             customize_btn.style(size="sm")
                             customize_btns.update({"自定义按钮" + str(k+1): customize_btn})
                         for k in functional:
                             if ("Visible" in functional[k]) and (not functional[k]["Visible"]): continue
                             variant = functional[k]["Color"] if "Color" in functional[k] else "secondary"
-                            functional[k]["Button"] = gr.Button(k, variant=variant, info_str=f'基础功能区: {k}')
+                            functional[k]["Button"] = gr.Button(k, variant=variant, info_str=f'Prompt Template: {k}')
                             functional[k]["Button"].style(size="sm")
                             predefined_btns.update({k: functional[k]["Button"]})
-                with gr.Accordion("函数插件区", open=True, elem_id="plugin-panel") as area_crazy_fn:
+                with gr.Accordion("Plugin Panel", open=True, elem_id="plugin-panel") as area_crazy_fn:
                     with gr.Row():
                         gr.Markdown("<small>插件可读取“输入区”文本/路径作为参数（上传文件自动修正路径）</small>")
                     with gr.Row(elem_id="input-plugin-group"):
@@ -149,12 +189,12 @@ def main():
                             with gr.Row():
                                 switchy_bt = gr.Button(r"请先从插件列表中选择", variant="secondary").style(size="sm")
                     with gr.Row():
-                        with gr.Accordion("点击展开“文件下载区”。", open=False) as area_file_up:
-                            file_upload = gr.Files(label="任何文件, 推荐上传压缩文件(zip, tar)", file_count="multiple", elem_id="elem_upload")
+                        with gr.Accordion("File Download", open=False) as area_file_up:
+                            file_upload = gr.Files(label="Any file, compressed files(zip, tar) recommeded.", file_count="multiple", elem_id="elem_upload")
 
         from themes.gui_toolbar import define_gui_toolbar
-        checkboxes, checkboxes_2, max_length_sl, theme_dropdown, system_prompt, file_upload_2, md_dropdown, top_p, temperature = \
-            define_gui_toolbar(AVAIL_LLM_MODELS, LLM_MODEL, INIT_SYS_PROMPT, THEME, AVAIL_THEMES, ADD_WAIFU, help_menu_description, js_code_for_toggle_darkmode)
+        checkboxes, checkboxes_2, max_length_sl, theme_dropdown, system_prompt, file_upload_2, md_dropdown, pt_dropdown, top_p, temperature = \
+            define_gui_toolbar(AVAIL_LLM_MODELS, LLM_MODEL, AVAIL_PROMPT_TEMPS, PROMPT_TEMP, INIT_SYS_PROMPT, THEME, AVAIL_THEMES, ADD_WAIFU, help_menu_description, js_code_for_toggle_darkmode)
 
         from themes.gui_floating_menu import define_gui_floating_menu
         area_input_secondary, txt2, area_customize, submitBtn2, resetBtn2, clearBtn2, stopBtn2 = \
@@ -167,10 +207,10 @@ def main():
         # 功能区显示开关与功能区的互动
         def fn_area_visibility(a):
             ret = {}
-            ret.update({area_input_primary: gr.update(visible=("浮动输入区" not in a))})
-            ret.update({area_input_secondary: gr.update(visible=("浮动输入区" in a))})
-            ret.update({plugin_advanced_arg: gr.update(visible=("插件参数区" in a))})
-            if "浮动输入区" in a: ret.update({txt: gr.update(value="")})
+            ret.update({area_input_primary: gr.update(visible=("Floating Input" not in a))})
+            ret.update({area_input_secondary: gr.update(visible=("Floating Input" in a))})
+            ret.update({plugin_advanced_arg: gr.update(visible=("Plugin Args" in a))})
+            if "Floating Input" in a: ret.update({txt: gr.update(value="")})
             return ret
         checkboxes.select(fn_area_visibility, [checkboxes], [area_basic_fn, area_crazy_fn, area_input_primary, area_input_secondary, txt, txt2, plugin_advanced_arg] )
         checkboxes.select(None, [checkboxes], None, _js=js_code_show_or_hide)
@@ -178,14 +218,14 @@ def main():
         # 功能区显示开关与功能区的互动
         def fn_area_visibility_2(a):
             ret = {}
-            ret.update({area_customize: gr.update(visible=("自定义菜单" in a))})
+            ret.update({area_customize: gr.update(visible=("Customize Menu" in a))})
             return ret
         checkboxes_2.select(fn_area_visibility_2, [checkboxes_2], [area_customize] )
         checkboxes_2.select(None, [checkboxes_2], None, _js=js_code_show_or_hide_group2)
 
         # 整理反复出现的控件句柄组合
-        input_combo = [cookies, max_length_sl, md_dropdown, txt, txt2, top_p, temperature, chatbot, history, system_prompt, plugin_advanced_arg]
-        input_combo_order = ["cookies", "max_length_sl", "md_dropdown", "txt", "txt2", "top_p", "temperature", "chatbot", "history", "system_prompt", "plugin_advanced_arg"]
+        input_combo = [cookies, max_length_sl, md_dropdown, pt_dropdown, txt, txt2, top_p, temperature, chatbot, history, system_prompt, plugin_advanced_arg]
+        input_combo_order = ["cookies", "max_length_sl", "md_dropdown", "pt_dropdown", "txt", "txt2", "top_p", "temperature", "chatbot", "history", "system_prompt", "plugin_advanced_arg"]
         output_combo = [cookies, chatbot, history, status]
         predict_args = dict(fn=ArgsGeneralWrapper(predict), inputs=[*input_combo, gr.State(True)], outputs=output_combo)
         # 提交按钮、重置按钮
@@ -243,8 +283,12 @@ def main():
         dropdown.select(on_dropdown_changed, [dropdown], [switchy_bt, plugin_advanced_arg] )
 
         def on_md_dropdown_changed(k):
-            return {chatbot: gr.update(label="当前模型："+k)}
+            return {chatbot: gr.update(label="Current Model: "+k+f" with {PROMPT_TEMP}")}
         md_dropdown.select(on_md_dropdown_changed, [md_dropdown], [chatbot] )
+
+        def on_pt_dropdown_changed(k):
+            return {chatbot: gr.update(label="Current Model: "+f"{LLM_MODEL} with "+k)}
+        pt_dropdown.select(on_pt_dropdown_changed, [pt_dropdown], [chatbot] )
 
         def on_theme_dropdown_changed(theme, secret_css):
             adjust_theme, css_part1, _, adjust_dynamic_theme = load_dynamic_theme(theme)

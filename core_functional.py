@@ -10,7 +10,7 @@ from textwrap import dedent
 def get_core_functions():
     return {
 
-        "学术语料润色": {
+        "Summary": {
             # [1*] 前缀字符串，会被加在你的输入之前。例如，用来描述你的要求，例如翻译、解释代码、润色等等。
             #      这里填一个提示词字符串就行了，这里为了区分中英文情景搞复杂了一点
             "Prefix":   build_gpt_academic_masked_string_langbased(

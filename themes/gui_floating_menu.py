@@ -16,7 +16,7 @@ def define_gui_floating_menu(customize_btns, functional, predefined_btns, cookie
 
 
     with gr.Floating(init_x="20%", init_y="50%", visible=False, width="40%", drag="top") as area_customize:
-        with gr.Accordion("自定义菜单", open=True, elem_id="edit-panel"):
+        with gr.Accordion("Customize Menu", open=True, elem_id="edit-panel"):
             with gr.Row() as row:
                 with gr.Column(scale=10):
                     AVAIL_BTN = [btn for btn in customize_btns.keys()] + [k for k in functional]
